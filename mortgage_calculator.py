@@ -47,26 +47,32 @@ if Web3.is_address(contract_address):
 
     # Button to calculate token amount
     if st.button('Calculate Token Amount'):
-        eth_amount_wei = Web3.to_wei(eth_amount, 'ether')
-        token_amount = contract.functions.calculatePurchaseReturn(eth_amount_wei).call()
-        st.write(f'Token Amount: {Web3.from_wei(token_amount, "ether")}')
+        try:
+            eth_amount_wei = Web3.to_wei(eth_amount, 'ether')
+            token_amount = contract.functions.calculatePurchaseReturn(eth_amount_wei).call()
+            st.write(f'Token Amount: {Web3.from_wei(token_amount, "ether")}')
+        except Exception as e:
+            st.error(f"Error: {str(e)}")
 
     # Generate bonding curve
-    eth_values = [i for i in range(1, 101)]  # ETH amounts from 1 to 100
-    token_values = []
+    try:
+        eth_values = [i for i in range(1, 101)]  # ETH amounts from 1 to 100
+        token_values = []
 
-    for eth in eth_values:
-        eth_wei = Web3.to_wei(eth, 'ether')
-        token_amount = contract.functions.calculatePurchaseReturn(eth_wei).call()
-        token_values.append(Web3.from_wei(token_amount, 'ether'))
+        for eth in eth_values:
+            eth_wei = Web3.to_wei(eth, 'ether')
+            token_amount = contract.functions.calculatePurchaseReturn(eth_wei).call()
+            token_values.append(Web3.from_wei(token_amount, 'ether'))
 
-    # Plot bonding curve
-    plt.figure(figsize=(10, 5))
-    plt.plot(eth_values, token_values, label='Bonding Curve')
-    plt.xlabel('ETH Amount')
-    plt.ylabel('Token Amount')
-    plt.title('Bonding Curve')
-    plt.legend()
-    st.pyplot(plt)
+        # Plot bonding curve
+        plt.figure(figsize=(10, 5))
+        plt.plot(eth_values, token_values, label='Bonding Curve')
+        plt.xlabel('ETH Amount')
+        plt.ylabel('Token Amount')
+        plt.title('Bonding Curve')
+        plt.legend()
+        st.pyplot(plt)
+    except Exception as e:
+        st.error(f"Error generating bonding curve: {str(e)}")
 else:
     st.write("Please enter a valid contract address.")
