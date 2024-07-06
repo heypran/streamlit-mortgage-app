@@ -38,7 +38,8 @@ st.title('Bancor Continuous Token Bonding Curve')
 contract_address = st.text_input('Enter Contract Address:', '')
 
 # Connect to the contract
-if Web3.isAddress(contract_address):
+if Web3.isChecksumAddress(contract_address):
+    contract_address = Web3.toChecksumAddress(contract_address)
     contract = w3.eth.contract(address=contract_address, abi=contract_abi)
 
     # Input fields for ETH amount
