@@ -1,4 +1,4 @@
 streamlit
-web3==6.3.0
+web3
 matplotlib
-numpy==1.24.3
+
