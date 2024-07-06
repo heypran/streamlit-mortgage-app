@@ -1,64 +1,71 @@
+import json
 import streamlit as st
-import pandas as pd
 import matplotlib.pyplot as plt
-import math
+from web3 import Web3
 
-st.title("Mortgage Repayments Calculator")
+# Connect to local Ethereum node
+w3 = Web3(Web3.HTTPProvider('http://127.0.0.1:8545'))
 
-st.write("### Input Data")
-col1, col2 = st.columns(2)
-home_value = col1.number_input("Home Value", min_value=0, value=500000)
-deposit = col1.number_input("Deposit", min_value=0, value=100000)
-interest_rate = col2.number_input("Interest Rate (in %)", min_value=0.0, value=5.5)
-loan_term = col2.number_input("Loan Term (in years)", min_value=1, value=30)
+# Contract ABI
+contract_abi = json.loads('''[
+  {
+    "inputs": [
+      { "internalType": "string", "name": "name", "type": "string" },
+      { "internalType": "string", "name": "symbol", "type": "string" },
+      { "internalType": "uint256", "name": "_initialSupply", "type": "uint256" },
+      { "internalType": "uint256", "name": "_initialPricePerToken", "type": "uint256" }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "constructor"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "_ethAmount", "type": "uint256" }
+    ],
+    "name": "calculatePurchaseReturn",
+    "outputs": [
+      { "internalType": "uint256", "name": "", "type": "uint256" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]''')
 
-# Calculate the repayments.
-loan_amount = home_value - deposit
-monthly_interest_rate = (interest_rate / 100) / 12
-number_of_payments = loan_term * 12
-monthly_payment = (
-    loan_amount
-    * (monthly_interest_rate * (1 + monthly_interest_rate) ** number_of_payments)
-    / ((1 + monthly_interest_rate) ** number_of_payments - 1)
-)
+# Streamlit app
+st.title('Bancor Continuous Token Bonding Curve')
 
-# Display the repayments.
-total_payments = monthly_payment * number_of_payments
-total_interest = total_payments - loan_amount
+# Input for contract address
+contract_address = st.text_input('Enter Contract Address:', '')
 
-st.write("### Repayments")
-col1, col2, col3 = st.columns(3)
-col1.metric(label="Monthly Repayments", value=f"${monthly_payment:,.2f}")
-col2.metric(label="Total Repayments", value=f"${total_payments:,.0f}")
-col3.metric(label="Total Interest", value=f"${total_interest:,.0f}")
+# Connect to the contract
+if Web3.isAddress(contract_address):
+    contract = w3.eth.contract(address=contract_address, abi=contract_abi)
 
+    # Input fields for ETH amount
+    eth_amount = st.number_input('Enter ETH amount:', min_value=0.0, step=0.01)
 
-# Create a data-frame with the payment schedule.
-schedule = []
-remaining_balance = loan_amount
+    # Button to calculate token amount
+    if st.button('Calculate Token Amount'):
+        eth_amount_wei = Web3.toWei(eth_amount, 'ether')
+        token_amount = contract.functions.calculatePurchaseReturn(eth_amount_wei).call()
+        st.write(f'Token Amount: {Web3.fromWei(token_amount, "ether")}')
 
-for i in range(1, number_of_payments + 1):
-    interest_payment = remaining_balance * monthly_interest_rate
-    principal_payment = monthly_payment - interest_payment
-    remaining_balance -= principal_payment
-    year = math.ceil(i / 12)  # Calculate the year into the loan
-    schedule.append(
-        [
-            i,
-            monthly_payment,
-            principal_payment,
-            interest_payment,
-            remaining_balance,
-            year,
-        ]
-    )
+    # Generate bonding curve
+    eth_values = [i for i in range(1, 101)]  # ETH amounts from 1 to 100
+    token_values = []
 
-df = pd.DataFrame(
-    schedule,
-    columns=["Month", "Payment", "Principal", "Interest", "Remaining Balance", "Year"],
-)
+    for eth in eth_values:
+        eth_wei = Web3.toWei(eth, 'ether')
+        token_amount = contract.functions.calculatePurchaseReturn(eth_wei).call()
+        token_values.append(Web3.fromWei(token_amount, 'ether'))
 
-# Display the data-frame as a chart.
-st.write("### Payment Schedule")
-payments_df = df[["Year", "Remaining Balance"]].groupby("Year").min()
-st.line_chart(payments_df)
+    # Plot bonding curve
+    plt.figure(figsize=(10, 5))
+    plt.plot(eth_values, token_values, label='Bonding Curve')
+    plt.xlabel('ETH Amount')
+    plt.ylabel('Token Amount')
+    plt.title('Bonding Curve')
+    plt.legend()
+    st.pyplot(plt)
+else:
+    st.write("Please enter a valid contract address.")
