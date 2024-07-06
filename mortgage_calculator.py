@@ -47,18 +47,18 @@ if Web3.is_address(contract_address):
 
     # Button to calculate token amount
     if st.button('Calculate Token Amount'):
-        eth_amount_wei = Web3.toWei(eth_amount, 'ether')
+        eth_amount_wei = Web3.to_wei(eth_amount, 'ether')
         token_amount = contract.functions.calculatePurchaseReturn(eth_amount_wei).call()
-        st.write(f'Token Amount: {Web3.fromWei(token_amount, "ether")}')
+        st.write(f'Token Amount: {Web3.from_wei(token_amount, "ether")}')
 
     # Generate bonding curve
     eth_values = [i for i in range(1, 101)]  # ETH amounts from 1 to 100
     token_values = []
 
     for eth in eth_values:
-        eth_wei = Web3.toWei(eth, 'ether')
+        eth_wei = Web3.to_wei(eth, 'ether')
         token_amount = contract.functions.calculatePurchaseReturn(eth_wei).call()
-        token_values.append(Web3.fromWei(token_amount, 'ether'))
+        token_values.append(Web3.from_wei(token_amount, 'ether'))
 
     # Plot bonding curve
     plt.figure(figsize=(10, 5))
