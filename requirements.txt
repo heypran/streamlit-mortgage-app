@@ -1,3 +1,5 @@
 matplotlib
 streamlit
 pandas
+Web3
+json
