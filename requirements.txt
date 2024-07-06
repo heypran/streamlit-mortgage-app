@@ -1,5 +1,4 @@
 matplotlib
 streamlit
 pandas
-web3
-json
+web3==6.3.0
